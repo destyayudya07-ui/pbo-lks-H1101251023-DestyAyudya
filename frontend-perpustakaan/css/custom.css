@@ -3,7 +3,7 @@ body {
     color: #333;
 }
 
-h2 {
+h3 {
     font-weight: 700;
     color: #2c3e50;
 }
@@ -24,20 +24,10 @@ h2 {
 .table th {
     background-color: #343a40 !important;
     color: #ffffff !important;
-    text-align: center;
 }
 
 .table td {
     vertical-align: middle;
-    text-align: center;
-}
-
-.table td:nth-child(2) {
-    text-align: left; /* Rata kiri untuk nama kategori */
-}
-
-.table td:nth-child(3) {
-    text-align: left; /* Rata kiri untuk deskripsi */
 }
 
 button {
