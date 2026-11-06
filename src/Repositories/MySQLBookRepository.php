@@ -1,33 +1,85 @@
 <?php
+
 namespace App\Repositories;
-use PDO;
-use App\Models\Book;
+
 use App\Contracts\BookRepositoryInterface;
+use App\Models\Book;
+use PDO;
 
 class MySQLBookRepository implements BookRepositoryInterface {
-    public function __construct(private PDO $pdo) {}
-    private function model(array $r): Book {
-        return new Book((int)$r['id'], $r['judul'], $r['penulis'], (int)$r['tahun'], (int)$r['stok']);
+    private PDO $db;
+
+    public function __construct(PDO $db) {
+        $this->db = $db;
     }
-    public function findAll(): array {
-        return array_map(fn($r) => $this->model($r), $this->pdo->query('SELECT * FROM books ORDER BY id')->fetchAll());
+
+    public function getAll(): array {
+        $stmt = $this->db->query("SELECT * FROM books");
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $books = [];
+        foreach ($results as $row) {
+            $books[] = new Book(
+                $row['id'],
+                $row['judul'],
+                $row['penulis'],
+                $row['tahun'],
+                $row['stok']
+            );
+        }
+        return $books;
     }
+
     public function findById(int $id): ?Book {
-        $s=$this->pdo->prepare('SELECT * FROM books WHERE id=?'); $s->execute([$id]); $r=$s->fetch();
-        return $r ? $this->model($r) : null;
+        $stmt = $this->db->prepare("SELECT * FROM books WHERE id = ?");
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            return null;
+        }
+
+        return new Book(
+            $row['id'],
+            $row['judul'],
+            $row['penulis'],
+            $row['tahun'],
+            $row['stok']
+        );
     }
-    public function create(array $d): Book {
-        $s=$this->pdo->prepare('INSERT INTO books (judul,penulis,tahun,stok) VALUES (?,?,?,?)');
-        $s->execute([$d['judul'],$d['penulis'],$d['tahun'],$d['stok']]);
-        return $this->findById((int)$this->pdo->lastInsertId());
+
+    public function create(array $data): Book {
+        $stmt = $this->db->prepare("INSERT INTO books (judul, penulis, tahun, stok) VALUES (?, ?, ?, ?)");
+        $stmt->execute([
+            $data['judul'],
+            $data['penulis'],
+            $data['tahun'],
+            $data['stok']
+        ]);
+
+        $id = $this->db->lastInsertId();
+        return new Book($id, $data['judul'], $data['penulis'], $data['tahun'], $data['stok']);
     }
-    public function update(int $id, array $d): ?Book {
-        if (!$this->findById($id)) return null;
-        $s=$this->pdo->prepare('UPDATE books SET judul=?,penulis=?,tahun=?,stok=? WHERE id=?');
-        $s->execute([$d['judul'],$d['penulis'],$d['tahun'],$d['stok'],$id]);
+
+    public function update(int $id, array $data): ?Book {
+        $stmt = $this->db->prepare("UPDATE books SET judul = ?, penulis = ?, tahun = ?, stok = ? WHERE id = ?");
+        $success = $stmt->execute([
+            $data['judul'],
+            $data['penulis'],
+            $data['tahun'],
+            $data['stok'],
+            $id
+        ]);
+
+        if (!$success) {
+            return null;
+        }
+
         return $this->findById($id);
     }
+
     public function delete(int $id): bool {
-        $s=$this->pdo->prepare('DELETE FROM books WHERE id=?'); $s->execute([$id]); return $s->rowCount()>0;
+        $stmt = $this->db->prepare("DELETE FROM books WHERE id = ?");
+        return $stmt->execute([$id]);
     }
 }
