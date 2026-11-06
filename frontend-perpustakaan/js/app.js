@@ -1,7 +1,69 @@
-const root=document.getElementById('app');
-async function render(){const page=location.hash||'#dashboard';try{
- if(page==='#books'){const books=await api('/books');root.innerHTML=`<h2 class="text-xl font-bold mb-4">Daftar Buku</h2><form id="add" class="mb-4"><input name="judul" placeholder="Judul" required><input name="penulis" placeholder="Penulis" required><input name="tahun" type="number" placeholder="Tahun" required><input name="stok" type="number" placeholder="Stok" required><button class="bg-blue-700 text-white px-4 py-2 rounded">Tambah</button></form><div class="overflow-x-auto"><table class="w-full text-left"><thead><tr><th>ID</th><th>Judul</th><th>Penulis</th><th>Tahun</th><th>Stok</th></tr></thead><tbody>${books.map(b=>`<tr><td>${b.id}</td><td>${b.judul}</td><td>${b.penulis}</td><td>${b.tahun}</td><td>${b.stok}</td></tr>`).join('')}</tbody></table></div>`;
- document.getElementById('add').onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));d.tahun=+d.tahun;d.stok=+d.stok;try{await api('/books',{method:'POST',body:JSON.stringify(d)});render();}catch(x){alert(x.message)}}; 
- }else{const books=await api('/books');root.innerHTML=`<h2 class="text-xl font-bold mb-3">Dashboard</h2><p class="text-3xl font-bold text-blue-700">${books.length}</p><p>Total Buku</p><p class="mt-4">Selamat datang di aplikasi Perpustakaan.</p><a class="text-blue-700 underline" href="#books">Lihat daftar buku</a>`;}
- }catch(e){root.innerHTML=`<p class="text-red-600">Tidak dapat memuat data: ${e.message}. Pastikan backend dan database sudah berjalan.</p>`;}}
-window.addEventListener('hashchange',render);render();
+document.addEventListener("DOMContentLoaded", () => {
+    loadCategories();
+
+    const form = document.getElementById("category-form");
+    if (form) {
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const id = document.getElementById("category-id").value;
+            const nama = document.getElementById("nama").value;
+            const deskripsi = document.getElementById("deskripsi").value;
+
+            const data = { nama, deskripsi };
+
+            if (id) {
+                await updateCategory(id, data);
+            } else {
+                await createCategory(data);
+            }
+
+            form.reset();
+            document.getElementById("category-id").value = "";
+            loadCategories();
+        });
+    }
+});
+
+async function loadCategories() {
+    const loadingStatus = document.getElementById("loading-status");
+    const tbody = document.getElementById("category-table-body");
+    if (!tbody) return;
+
+    const response = await getCategories();
+    
+    // Sembunyikan status memuat setelah data merespons
+    if (loadingStatus) {
+        loadingStatus.style.display = "none";
+    }
+
+    tbody.innerHTML = "";
+    if (response && response.success && response.data) {
+        let nomor = 1;
+        response.data.forEach(category => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td class="text-center">${nomor++}</td>
+                <td>${category.nama_kategori}</td>
+                <td>${category.deskripsi || '-'}</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-warning text-white me-1" onclick="editCategoryForm(${category.id}, '${category.nama_kategori}', '${category.deskripsi || ''}')">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="hapusCategoryData(${category.id})">Hapus</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+}
+
+function editCategoryForm(id, nama, deskripsi) {
+    document.getElementById("category-id").value = id;
+    document.getElementById("nama").value = nama;
+    document.getElementById("deskripsi").value = deskripsi;
+}
+
+async function hapusCategoryData(id) {
+    if (confirm("Apakah Anda yakin ingin menghapus kategori ini?")) {
+        await deleteCategory(id);
+        loadCategories();
+    }
+}

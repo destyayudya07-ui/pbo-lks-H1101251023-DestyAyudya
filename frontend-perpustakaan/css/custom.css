@@ -1,1 +1,49 @@
-body{font-family:Arial,sans-serif}button{cursor:pointer}input{border:1px solid #cbd5e1;padding:8px;border-radius:6px;margin:4px}
+body {
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+h2 {
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+}
+
+.table {
+    background-color: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table th {
+    background-color: #343a40 !important;
+    color: #ffffff !important;
+    text-align: center;
+}
+
+.table td {
+    vertical-align: middle;
+    text-align: center;
+}
+
+.table td:nth-child(2) {
+    text-align: left; /* Rata kiri untuk nama kategori */
+}
+
+.table td:nth-child(3) {
+    text-align: left; /* Rata kiri untuk deskripsi */
+}
+
+button {
+    transition: all 0.2s ease-in-out;
+}
+
+button:hover {
+    transform: translateY(-1px);
+}
