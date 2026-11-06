@@ -1,1 +1,1 @@
-const BASE_URL = "http://localhost/rest-api-perpustakaan-lks-pbo/public";
+const BASE_URL = "http://localhost:8000";
