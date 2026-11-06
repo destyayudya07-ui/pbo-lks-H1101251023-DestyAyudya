@@ -1,0 +1,1 @@
+async function api(path,options={}){const r=await fetch(API_BASE_URL+path,{headers:{'Content-Type':'application/json'},...options});const j=await r.json();if(!r.ok||!j.success)throw new Error(j.message||'Request gagal');return j.data;}
