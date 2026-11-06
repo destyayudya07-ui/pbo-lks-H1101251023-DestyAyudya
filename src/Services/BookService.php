@@ -1,25 +1,46 @@
 <?php
+
 namespace App\Services;
+
 use App\Contracts\BookRepositoryInterface;
 use Exception;
 
-class BookService {
-    public function __construct(private BookRepositoryInterface $repo) {}
-    public function list(): array { return array_map(fn($b)=>$b->toArray(), $this->repo->findAll()); }
-    public function show(int $id): array {
-        $b=$this->repo->findById($id); if (!$b) throw new Exception("Buku dengan ID $id tidak ditemukan",404);
-        return $b->toArray();
+class BookService
+{
+    private BookRepositoryInterface $bookRepository;
+
+    public function __construct(BookRepositoryInterface $bookRepository)
+    {
+        $this->bookRepository = $bookRepository;
     }
-    private function validate(array $d): array {
-        if (trim($d['judul'] ?? '')==='') throw new Exception('Judul wajib diisi',422);
-        if (trim($d['penulis'] ?? '')==='') throw new Exception('Penulis wajib diisi',422);
-        foreach (['tahun','stok'] as $k) if (!isset($d[$k]) || !is_numeric($d[$k])) throw new Exception(ucfirst($k).' wajib berupa angka',422);
-        return ['judul'=>trim($d['judul']),'penulis'=>trim($d['penulis']),'tahun'=>(int)$d['tahun'],'stok'=>(int)$d['stok']];
+
+    public function list(): array
+    {
+        return $this->bookRepository->getAll();
     }
-    public function create(array $d): array { return $this->repo->create($this->validate($d))->toArray(); }
-    public function update(int $id,array $d): array {
-        $b=$this->repo->update($id,$this->validate($d)); if (!$b) throw new Exception("Buku dengan ID $id tidak ditemukan",404);
-        return $b->toArray();
+
+    public function create(array $data): array
+    {
+        // Validasi logika bisnis: Judul wajib diisi
+        if (empty(trim($data['judul'] ?? ''))) {
+            throw new Exception("Judul wajib diisi");
+        }
+
+        // Validasi tambahan opsional untuk field lain jika diperlukan
+        if (empty(trim($data['penulis'] ?? ''))) {
+            throw new Exception("Penulis wajib diisi");
+        }
+
+        // Panggil repository untuk menyimpan data
+        $createdBook = $this->bookRepository->create($data);
+
+        // Ubah ke array asosiatif jika hasil return berupa objek/array standar
+        return [
+            'id' => method_exists($createdBook, 'getId') ? $createdBook->getId() : ($createdBook['id'] ?? null),
+            'judul' => method_exists($createdBook, 'getJudul') ? $createdBook->getJudul() : ($data['judul'] ?? ''),
+            'penulis' => method_exists($createdBook, 'getPenulis') ? $createdBook->getPenulis() : ($data['penulis'] ?? ''),
+            'tahun' => method_exists($createdBook, 'getTahun') ? $createdBook->getTahun() : ($data['tahun'] ?? 0),
+            'stok' => method_exists($createdBook, 'getStok') ? $createdBook->getStok() : ($data['stok'] ?? 0),
+        ];
     }
-    public function delete(int $id): void { if (!$this->repo->delete($id)) throw new Exception("Buku dengan ID $id tidak ditemukan",404); }
 }

@@ -1,17 +1,62 @@
 <?php
+
 namespace App\Controllers;
-use App\Core\Response;
-use App\Services\BookService;
-use Throwable;
-class BookController {
-    public function __construct(private BookService $service) {}
-    private function run(callable $fn,int $status=200):void {
-        try { Response::json(['success'=>true,'data'=>$fn()],$status); }
-        catch(Throwable $e){$code=(int)$e->getCode(); if($code<400||$code>599)$code=500; Response::json(['success'=>false,'message'=>$e->getMessage()],$code);}
+
+use App\Contracts\BookRepositoryInterface;
+
+class BookController 
+{
+    private BookRepositoryInterface $bookRepository;
+
+    public function __construct(BookRepositoryInterface $bookRepository) 
+    {
+        $this->bookRepository = $bookRepository;
     }
-    public function index():void{$this->run(fn()=>$this->service->list());}
-    public function show(int $id):void{$this->run(fn()=>$this->service->show($id));}
-    public function store(array $d):void{$this->run(fn()=>$this->service->create($d),201);}
-    public function update(int $id,array $d):void{$this->run(fn()=>$this->service->update($id,$d));}
-    public function destroy(int $id):void{$this->run(function()use($id){$this->service->delete($id);return ['message'=>'Buku berhasil dihapus'];});}
+
+    // Method untuk menampilkan semua buku (GET /books)
+    public function index() 
+    {
+        header('Content-Type: application/json');
+        try {
+            $books = $this->bookRepository->getAll();
+            echo json_encode([
+                'status' => 'success',
+                'data' => $books
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    // Method untuk mengambil detail buku berdasarkan ID (GET /books/{id})
+    public function show($id) 
+    {
+        header('Content-Type: application/json');
+        try {
+            $book = $this->bookRepository->findById((int)$id);
+            if (!$book) {
+                http_response_code(404);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Buku tidak ditemukan'
+                ]);
+                return;
+            }
+
+            echo json_encode([
+                'status' => 'success',
+                'data' => $book
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
 }
