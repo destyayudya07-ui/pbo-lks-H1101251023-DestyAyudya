@@ -2,61 +2,113 @@
 
 namespace App\Controllers;
 
-use App\Contracts\BookRepositoryInterface;
+use App\Services\BookService;
+use App\Core\Response;
+use App\Core\Request;
+use Exception;
 
-class BookController 
+class BookController
 {
-    private BookRepositoryInterface $bookRepository;
+    private BookService $bookService;
+    private Response $response;
+    private Request $request;
 
-    public function __construct(BookRepositoryInterface $bookRepository) 
+    public function __construct(BookService $bookService)
     {
-        $this->bookRepository = $bookRepository;
+        $this->bookService = $bookService;
+        $this->response = new Response();
+        $this->request = new Request();
     }
 
-    // Method untuk menampilkan semua buku (GET /books)
-    public function index() 
+    public function index(): void
     {
-        header('Content-Type: application/json');
         try {
-            $books = $this->bookRepository->getAll();
-            echo json_encode([
-                'status' => 'success',
+            $books = $this->bookService->list();
+            $this->response->json([
+                'success' => true,
+                'message' => 'Daftar buku',
                 'data' => $books
-            ]);
-        } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                'status' => 'error',
+            ], 200);
+        } catch (Exception $e) {
+            $this->response->json([
+                'success' => false,
                 'message' => $e->getMessage()
-            ]);
+            ], 500);
         }
     }
 
-    // Method untuk mengambil detail buku berdasarkan ID (GET /books/{id})
-    public function show($id) 
+    public function show($id): void
     {
-        header('Content-Type: application/json');
         try {
-            $book = $this->bookRepository->findById((int)$id);
+            $book = $this->bookService->getById((int)$id);
             if (!$book) {
-                http_response_code(404);
-                echo json_encode([
-                    'status' => 'error',
-                    'message' => 'Buku tidak ditemukan'
-                ]);
+                $this->response->json([
+                    'success' => false,
+                    'message' => "Buku dengan ID {$id} tidak ditemukan"
+                ], 404);
                 return;
             }
-
-            echo json_encode([
-                'status' => 'success',
+            $this->response->json([
+                'success' => true,
                 'data' => $book
-            ]);
-        } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                'status' => 'error',
+            ], 200);
+        } catch (Exception $e) {
+            $this->response->json([
+                'success' => false,
                 'message' => $e->getMessage()
-            ]);
+            ], 500);
+        }
+    }
+
+    public function store(): void
+    {
+        try {
+            $data = $this->request->getBody();
+            $newBook = $this->bookService->create($data);
+            $this->response->json([
+                'success' => true,
+                'message' => 'Buku berhasil dibuat',
+                'data' => $newBook
+            ], 201);
+        } catch (Exception $e) {
+            $this->response->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
+    }
+
+    public function update($id): void
+    {
+        try {
+            $data = $this->request->getBody();
+            $updatedBook = $this->bookService->update((int)$id, $data);
+            $this->response->json([
+                'success' => true,
+                'message' => 'Buku berhasil diubah',
+                'data' => $updatedBook
+            ], 200);
+        } catch (Exception $e) {
+            $this->response->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
+    }
+
+    public function destroy($id): void
+    {
+        try {
+            $this->bookService->delete((int)$id);
+            $this->response->json([
+                'success' => true,
+                'message' => 'Buku berhasil dihapus'
+            ], 200);
+        } catch (Exception $e) {
+            $this->response->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 404);
         }
     }
 }
